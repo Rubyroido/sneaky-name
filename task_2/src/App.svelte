@@ -1,47 +1,106 @@
 <script lang="ts">
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
+  import { onMount } from "svelte";
+  const URL = "https://open.er-api.com/v6/latest/";
+
+  let firstCurrency: string, secondCurrensy: string;
+  let firstInput: number = 0, secondInput: number = 0;
+  let rates: object = {};
+
+  onMount(() => {
+    getCurrency("USD")
+      .then((data) => {
+        rates = data.rates;
+      })
+      .catch((err) => console.log(err));
+  });
+
+  function getCurrency(currency) {
+    return fetch(`${URL}${currency}`, {
+      method: "GET",
+    }).then((res) => {
+      return res.json();
+    });
+  }
+
+  function handleCurrencyChange(e) {
+    if(e.target.id === 'first-curr') {
+      getCurrency(e.target.value)
+      .then((data) => {
+        rates = data.rates;
+        convert(true, firstInput, secondCurrensy, rates)
+      })
+      .catch((err) => console.log(err));
+    } else {
+      // так при изменении второй валюты пересчитывается второй инпут исходя из значений первого
+      // convert(true, firstInput, secondCurrensy, rates)
+      // а так будет пересчитываться первый инпут исходя из значений второго
+      convert(false, secondInput, secondCurrensy, rates)
+    }
+  }
+
+  function convert(
+    isFirstInput: boolean,
+    sum: number,
+    curr: string,
+    rates: object,
+  ) {
+    if (isFirstInput) {
+      secondInput = Number((sum * rates[curr]).toFixed(4));
+      return
+    } else {
+      firstInput = Number((sum / rates[curr]).toFixed(4));
+    }
+  }
 </script>
 
 <main>
-  <div>
-    <a href="https://vitejs.dev" target="_blank" rel="noreferrer">
-      <img src={viteLogo} class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
+  <div class="converter">
+    <div class="first-container">
+      <select
+        name="curr"
+        id="first-curr"
+        bind:value={firstCurrency}
+        on:change={handleCurrencyChange}
+      >
+        <option value="USD">USD</option>
+        <option value="GBP">GBP</option>
+        <option value="EUR">EUR</option>
+        <option value="RUB">RUB</option>
+        <option value="CNY">CNY</option>
+      </select>
+      <input
+        type="number"
+        bind:value={firstInput}
+        on:input={() => convert(true, firstInput, secondCurrensy, rates)}
+      />
+    </div>
+    <div class="second-container">
+      <select
+        name="curr"
+        id="second-curr"
+        bind:value={secondCurrensy}
+        on:change={handleCurrencyChange}
+      >
+        <option value="USD">USD</option>
+        <option value="GBP">GBP</option>
+        <option value="EUR">EUR</option>
+        <option value="RUB">RUB</option>
+        <option value="CNY">CNY</option>
+      </select>
+      <input
+        type="number"
+        bind:value={secondInput}
+        on:input={() => convert(false, secondInput, secondCurrensy, rates)}
+      />
+    </div>
   </div>
-  <h1>Vite + Svelte</h1>
-
-  <div class="card">
-    <Counter />
-  </div>
-
-  <p>
-    Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank" rel="noreferrer">SvelteKit</a>, the official Svelte app framework powered by Vite!
-  </p>
-
-  <p class="read-the-docs">
-    Click on the Vite and Svelte logos to learn more
-  </p>
+  <a href="https://www.exchangerate-api.com">Rates By Exchange Rate API</a>
 </main>
 
 <style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
-  }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
-  }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
-  }
-  .read-the-docs {
-    color: #888;
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
   }
 </style>
